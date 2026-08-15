@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import './Auth.css';
 
+
+const API_BASE_URL = 'https://travel-backend-navy.vercel.app';
 // Data Mock Destinasi Nusantara
 const DESTINATIONS = [
   {
