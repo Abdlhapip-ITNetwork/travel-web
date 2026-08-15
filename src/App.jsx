@@ -1,74 +1,108 @@
 import React, { useState } from 'react';
+import axios from 'axios';
 import './Auth.css';
-
+import Home from './pages/Home';
 
 const API_BASE_URL = 'https://travel-backend-navy.vercel.app';
-// Data Mock Destinasi Nusantara
-const DESTINATIONS = [
+
+const DESTINATIONS_DATA = [
   {
     id: 1,
     title: 'Candi Borobudur',
     category: 'Budaya',
     location: 'Magelang, Jawa Tengah',
     rating: 4.9,
-    image: 'https://images.unsplash.com/photo-1596402184320-417e7178b2cd?auto=format&fit=crop&w=600&q=80',
-    description: 'Candi Buddha terbesar di dunia yang dibangun pada abad ke-8. Memiliki relief yang megah serta panorama matahari terbit yang sangat memukau di antara perbukitan Menoreh.',
+    image: '/images/destination-1.jpg',
+    description: 'Candi Buddha terbesar di dunia yang dibangun pada abad ke-8. Memiliki relief megah dan stupa ikonik berlatar pemandangan pegunungan Menoreh.',
     price: 'Rp 50.000 / orang'
   },
   {
     id: 2,
-    title: 'Raja Ampat',
+    title: 'Kepulauan Raja Ampat',
     category: 'Wisata Alam',
     location: 'Papua Barat Daya',
     rating: 5.0,
-    image: 'https://images.unsplash.com/photo-1516690561799-46d8f74f9abf?auto=format&fit=crop&w=600&q=80',
-    description: 'Kepulauan dengan keanekaragaman hayati laut terkaya di dunia. Gugusan pulau karang dan air laut jernih menjadikannya surga bagi para penyelam global.',
-    price: 'Rp 500.000 (Ijin Kawasan)'
+    image: '/images/destination-2.jpg',
+    description: 'Gugusan pulau karang eksotis dengan keanekaragaman biota laut tertinggi di dunia, menjadikannya surga menyelam internasional.',
+    price: 'Rp 500.000 (Ijin PIN)'
   },
   {
     id: 3,
-    title: 'Desa Penglipuran',
-    category: 'Budaya & Desa',
+    title: 'Desa Tradisional Penglipuran',
+    category: 'Budaya',
     location: 'Bangli, Bali',
     rating: 4.8,
-    image: 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=600&q=80',
-    description: 'Salah satu desa terbersih di dunia yang tetap mempertahankan tata ruang tradisional Bali dan kearifan lokal secara turun-temurun.',
+    image: '/images/destination-3.jpg',
+    description: 'Desa adat yang dinobatkan sebagai salah satu desa terbersih di dunia dengan tata ruang arsitektur Bali yang khas dan asri.',
     price: 'Rp 25.000 / orang'
   },
   {
     id: 4,
-    title: 'Kuliner Gudeg Yu Djum',
+    title: 'Sentra Gudeg Yu Djum',
     category: 'Kuliner',
     location: 'Yogyakarta',
     rating: 4.7,
-    image: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=600&q=80',
-    description: 'Kuliner khas Yogyakarta berbahan dasar nangka muda yang dimasak dengan santan dan gula aren asli, disajikan lengkap dengan krecek dan telur pindang.',
+    image: '/images/destination-4.jpg',
+    description: 'Kuliner tradisional khas Yogyakarta berbahan baku nangka muda yang dimasak kental dengan santan dan gula aren khas.',
     price: 'Rp 35.000 / porsi'
   }
 ];
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState('auth'); // 'auth' | 'home' | 'detail'
-  const [authTab, setAuthTab] = useState('login'); // 'login' | 'register'
-  const [selectedDest, setSelectedDest] = useState(DESTINATIONS[0]);
+  const [authTab, setAuthTab] = useState('login');
+  const [selectedDest, setSelectedDest] = useState(DESTINATIONS_DATA[0]);
   const [user, setUser] = useState(null);
   const [favorites, setFavorites] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  // Form states
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  // Form State
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [regName, setRegName] = useState('');
+  const [regEmail, setRegEmail] = useState('');
+  const [regPassword, setRegPassword] = useState('');
+  const [regConfirmPassword, setRegConfirmPassword] = useState('');
 
-  const handleLoginSubmit = (e) => {
+  const handleRegisterSubmit = async (e) => {
     e.preventDefault();
-    setUser({ username: username || 'User Demo' });
-    setCurrentPage('home');
+    if (regPassword !== regConfirmPassword) {
+      alert('Konfirmasi password tidak cocok!');
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await axios.post(`${API_BASE_URL}/api/auth/register`, {
+        name: regName,
+        email: regEmail,
+        password: regPassword
+      });
+      alert(res.data.message || 'Registrasi berhasil! Silakan login.');
+      setAuthTab('login');
+      setLoginEmail(regEmail);
+    } catch (err) {
+      alert(err.response?.data?.error || 'Registrasi gagal.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleRegisterSubmit = (e) => {
+  const handleLoginSubmit = async (e) => {
     e.preventDefault();
-    setUser({ username: username || 'User Baru' });
-    setCurrentPage('home');
+    setLoading(true);
+    try {
+      const res = await axios.post(`${API_BASE_URL}/api/auth/login`, {
+        email: loginEmail,
+        password: loginPassword
+      });
+      localStorage.setItem('token', res.data.token);
+      setUser(res.data.user);
+      setCurrentPage('home');
+    } catch (err) {
+      alert(err.response?.data?.error || 'Login gagal.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const toggleFavorite = (id) => {
@@ -77,132 +111,51 @@ export default function App() {
 
   return (
     <div>
-      {/* TAMPILAN 1: AUTH (LOGIN & REGISTER DARI TEMPLATE ANDA) */}
+      {/* 1. HALAMAN AUTH (LOGIN & REGISTER DENGAN BOOTSTRAP TAB) */}
       {currentPage === 'auth' && (
-        <div className="container">
+        <div className="container" style={{ paddingTop: '80px' }}>
           <div className="row">
-            <div className="col-md-6 col-md-offset-3">
-              <div className="panel panel-login">
+            <div className="col-md-6 col-md-offset-3 col-sm-8 col-sm-offset-2">
+              <div className="panel panel-login shadow">
                 <div className="panel-heading">
                   <div className="row">
-                    <div className="col-xs-6">
-                      <a 
-                        href="#login" 
-                        className={authTab === 'login' ? 'active' : ''} 
-                        onClick={(e) => { e.preventDefault(); setAuthTab('login'); }}
-                      >
-                        Login
-                      </a>
+                    <div className="col-xs-6 text-center">
+                      <a href="#login" className={authTab === 'login' ? 'active' : ''} onClick={(e) => { e.preventDefault(); setAuthTab('login'); }}>Login</a>
                     </div>
-                    <div className="col-xs-6">
-                      <a 
-                        href="#register" 
-                        className={authTab === 'register' ? 'active' : ''} 
-                        onClick={(e) => { e.preventDefault(); setAuthTab('register'); }}
-                      >
-                        Register
-                      </a>
+                    <div className="col-xs-6 text-center">
+                      <a href="#register" className={authTab === 'register' ? 'active' : ''} onClick={(e) => { e.preventDefault(); setAuthTab('register'); }}>Register</a>
                     </div>
                   </div>
                   <hr />
                 </div>
-
                 <div className="panel-body">
-                  <div className="row">
-                    <div className="col-lg-12">
-                      {/* FORM LOGIN */}
-                      {authTab === 'login' && (
-                        <form onSubmit={handleLoginSubmit} role="form">
-                          <div className="form-group">
-                            <input 
-                              type="text" 
-                              className="form-control" 
-                              placeholder="Username" 
-                              value={username} 
-                              onChange={(e) => setUsername(e.target.value)} 
-                              required 
-                            />
-                          </div>
-                          <div className="form-group">
-                            <input 
-                              type="password" 
-                              className="form-control" 
-                              placeholder="Password" 
-                              value={password} 
-                              onChange={(e) => setPassword(e.target.value)} 
-                              required 
-                            />
-                          </div>
-                          <div className="form-group text-center">
-                            <input type="checkbox" id="remember" />
-                            <label htmlFor="remember"> Remember Me</label>
-                          </div>
-                          <div className="form-group">
-                            <div className="row">
-                              <div className="col-sm-6 col-sm-offset-3">
-                                <input type="submit" className="form-control btn btn-login" value="Log In" />
-                              </div>
-                            </div>
-                          </div>
-                          <div className="form-group text-center">
-                            <a href="#" className="forgot-password" onClick={(e) => e.preventDefault()}>Forgot Password?</a>
-                          </div>
-                        </form>
-                      )}
-
-                      {/* FORM REGISTER */}
-                      {authTab === 'register' && (
-                        <form onSubmit={handleRegisterSubmit} role="form">
-                          <div className="form-group">
-                            <input 
-                              type="text" 
-                              className="form-control" 
-                              placeholder="Username" 
-                              value={username} 
-                              onChange={(e) => setUsername(e.target.value)} 
-                              required 
-                            />
-                          </div>
-                          <div className="form-group">
-                            <input 
-                              type="email" 
-                              className="form-control" 
-                              placeholder="Email Address" 
-                              value={email} 
-                              onChange={(e) => setEmail(e.target.value)} 
-                              required 
-                            />
-                          </div>
-                          <div className="form-group">
-                            <input 
-                              type="password" 
-                              className="form-control" 
-                              placeholder="Password" 
-                              value={password} 
-                              onChange={(e) => setPassword(e.target.value)} 
-                              required 
-                            />
-                          </div>
-                          <div className="form-group">
-                            <input 
-                              type="password" 
-                              className="form-control" 
-                              placeholder="Confirm Password" 
-                              required 
-                            />
-                          </div>
-                          <div className="form-group">
-                            <div className="row">
-                              <div className="col-sm-6 col-sm-offset-3">
-                                <input type="submit" className="form-control btn btn-register" value="Register Now" />
-                              </div>
-                            </div>
-                          </div>
-                        </form>
-                      )}
-
-                    </div>
-                  </div>
+                  {authTab === 'login' ? (
+                    <form onSubmit={handleLoginSubmit}>
+                      <div className="form-group mb-3">
+                        <input type="email" className="form-control" placeholder="Email Address" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} required />
+                      </div>
+                      <div className="form-group mb-3">
+                        <input type="password" className="form-control" placeholder="Password" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} required />
+                      </div>
+                      <input type="submit" className="form-control btn btn-login" value={loading ? "Memproses..." : "Log In"} disabled={loading} />
+                    </form>
+                  ) : (
+                    <form onSubmit={handleRegisterSubmit}>
+                      <div className="form-group mb-2">
+                        <input type="text" className="form-control" placeholder="Nama Lengkap" value={regName} onChange={e => setRegName(e.target.value)} required />
+                      </div>
+                      <div className="form-group mb-2">
+                        <input type="email" className="form-control" placeholder="Email Address" value={regEmail} onChange={e => setRegEmail(e.target.value)} required />
+                      </div>
+                      <div className="form-group mb-2">
+                        <input type="password" className="form-control" placeholder="Password" value={regPassword} onChange={e => setRegPassword(e.target.value)} required />
+                      </div>
+                      <div className="form-group mb-3">
+                        <input type="password" className="form-control" placeholder="Confirm Password" value={regConfirmPassword} onChange={e => setRegConfirmPassword(e.target.value)} required />
+                      </div>
+                      <input type="submit" className="form-control btn btn-register" value={loading ? "Mendaftarkan..." : "Register Now"} disabled={loading} />
+                    </form>
+                  )}
                 </div>
               </div>
             </div>
@@ -210,95 +163,49 @@ export default function App() {
         </div>
       )}
 
-      {/* TAMPILAN 2: HALAMAN UTAMA (HOME) */}
+      {/* 2. HALAMAN UTAMA (TEMPLATE PACIFIC) */}
       {currentPage === 'home' && (
-        <div style={{ backgroundColor: '#fff', minHeight: '100vh', paddingBottom: '40px' }}>
-          {/* Navbar */}
-          <nav className="navbar navbar-default" style={{ borderRadius: 0, backgroundColor: '#0f172a', borderColor: '#0f172a' }}>
-            <div className="container">
-              <div className="navbar-header">
-                <a className="navbar-brand" href="#" style={{ color: '#fff', fontWeight: 'bold' }}>🧭 Nusantara Guide</a>
-              </div>
-              <ul className="nav navbar-nav navbar-right">
-                <li><p className="navbar-text" style={{ color: '#94a3b8' }}>Halo, <strong>{user?.username}</strong></p></li>
-                <li><a href="#" onClick={() => { setUser(null); setCurrentPage('auth'); }} style={{ color: '#ff6b6b' }}>Logout</a></li>
-              </ul>
-            </div>
-          </nav>
-
-          <div className="container">
-            <div className="jumbotron text-center" style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
-              <h2>Eksplorasi Keindahan Indonesia</h2>
-              <p>Temukan destinasi wisata alam, budaya, dan kuliner terbaik di nusantara.</p>
-            </div>
-
-            <div className="row">
-              {DESTINATIONS.map(item => (
-                <div className="col-md-3 col-sm-6" key={item.id} style={{ marginBottom: '24px' }}>
-                  <div className="thumbnail" style={{ padding: 0, overflow: 'hidden', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
-                    <img src={item.image} alt={item.title} style={{ width: '100%', height: '160px', objectFit: 'cover' }} />
-                    <div className="caption" style={{ padding: '16px' }}>
-                      <span className="label label-info">{item.category}</span>
-                      <h4 style={{ fontWeight: 'bold', marginTop: '10px' }}>{item.title}</h4>
-                      <p style={{ color: '#64748b', fontSize: '12px' }}>📍 {item.location}</p>
-                      <p style={{ color: '#eab308', fontWeight: 'bold' }}>⭐ {item.rating} / 5.0</p>
-                      <p>
-                        <button 
-                          className="btn btn-primary btn-block" 
-                          onClick={() => { setSelectedDest(item); setCurrentPage('detail'); }}
-                        >
-                          Lihat Detail
-                        </button>
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+        <Home 
+          user={user}
+          onLogout={() => { localStorage.removeItem('token'); setUser(null); setCurrentPage('auth'); }}
+          onSelectDestination={(dest) => { setSelectedDest(dest); setCurrentPage('detail'); }}
+          destinations={DESTINATIONS_DATA}
+          favorites={favorites}
+          onToggleFavorite={toggleFavorite}
+        />
       )}
 
-      {/* TAMPILAN 3: HALAMAN DETAIL */}
+      {/* 3. HALAMAN DETAIL DESTINASI */}
       {currentPage === 'detail' && selectedDest && (
-        <div style={{ backgroundColor: '#fff', minHeight: '100vh', paddingBottom: '40px' }}>
-          <nav className="navbar navbar-default" style={{ borderRadius: 0, backgroundColor: '#0f172a', borderColor: '#0f172a' }}>
+        <div style={{ backgroundColor: '#f8fafc', minHeight: '100vh', paddingBottom: '60px' }}>
+          <nav className="navbar navbar-dark bg-dark py-3" style={{ background: '#040e27' }}>
             <div className="container">
-              <div className="navbar-header">
-                <a className="navbar-brand" href="#" style={{ color: '#fff', fontWeight: 'bold' }}>🧭 Nusantara Guide</a>
-              </div>
-              <ul className="nav navbar-nav navbar-right">
-                <li><a href="#" onClick={() => setCurrentPage('home')} style={{ color: '#fff' }}>← Kembali</a></li>
-              </ul>
+              <a className="navbar-brand text-white font-weight-bold" href="#back" onClick={(e) => { e.preventDefault(); setCurrentPage('home'); }}>
+                ← Kembali ke Katalog
+              </a>
             </div>
           </nav>
-
-          <div className="container">
-            <div className="row">
-              <div className="col-md-8 col-md-offset-2">
-                <div className="panel panel-default" style={{ borderRadius: '8px', overflow: 'hidden' }}>
-                  <img src={selectedDest.image} alt={selectedDest.title} style={{ width: '100%', height: '350px', objectFit: 'cover' }} />
-                  <div className="panel-body" style={{ padding: '30px' }}>
-                    <span className="label label-success">{selectedDest.category}</span>
-                    <h2 style={{ fontWeight: 'bold', marginTop: '10px' }}>{selectedDest.title}</h2>
-                    <p style={{ color: '#64748b' }}>📍 {selectedDest.location}</p>
-                    <p><strong>Rating:</strong> ⭐ {selectedDest.rating} | <strong>Tiket/Biaya:</strong> {selectedDest.price}</p>
-                    <hr />
-                    <h4>Deskripsi Destinasi</h4>
-                    <p style={{ lineHeight: '1.8', color: '#334155' }}>{selectedDest.description}</p>
-                    <div style={{ marginTop: '24px' }}>
-                      <button 
-                        className={`btn ${favorites.includes(selectedDest.id) ? 'btn-danger' : 'btn-default'}`} 
-                        onClick={() => toggleFavorite(selectedDest.id)}
-                        style={{ marginRight: '10px' }}
-                      >
-                        {favorites.includes(selectedDest.id) ? '❤️ Hapus dari Favorit' : '🤍 Simpan ke Favorit'}
-                      </button>
-                      <button className="btn btn-primary" onClick={() => setCurrentPage('home')}>
-                        Kembali ke Katalog
-                      </button>
-                    </div>
-                  </div>
+          <div className="container mt-4">
+            <div className="card shadow-sm border-0 rounded overflow-hidden">
+              <img src={selectedDest.image} alt={selectedDest.title} style={{ width: '100%', height: '420px', objectFit: 'cover' }} />
+              <div className="card-body p-4 p-md-5">
+                <span className="badge badge-primary px-3 py-2 mb-2">{selectedDest.category}</span>
+                <h1 className="font-weight-bold">{selectedDest.title}</h1>
+                <p className="text-muted"><i className="fa fa-map-marker text-danger mr-2"></i>{selectedDest.location}</p>
+                <p className="text-warning font-weight-bold">⭐ {selectedDest.rating} / 5.0 | <span className="text-dark">Estimasi Tiket: {selectedDest.price}</span></p>
+                <hr />
+                <h4 className="font-weight-bold mb-3">Deskripsi Lengkap</h4>
+                <p style={{ lineHeight: '1.8', color: '#4a5568', fontSize: '16px' }}>{selectedDest.description}</p>
+                <div className="mt-4">
+                  <button 
+                    className={`btn ${favorites.includes(selectedDest.id) ? 'btn-danger' : 'btn-outline-primary'} mr-3 px-4 py-2`}
+                    onClick={() => toggleFavorite(selectedDest.id)}
+                  >
+                    {favorites.includes(selectedDest.id) ? '❤️ Hapus dari Favorit' : '🤍 Tambah ke Favorit'}
+                  </button>
+                  <button className="btn btn-secondary px-4 py-2" onClick={() => setCurrentPage('home')}>
+                    Kembali
+                  </button>
                 </div>
               </div>
             </div>
