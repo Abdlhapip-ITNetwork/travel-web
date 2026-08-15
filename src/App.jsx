@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Home from './pages/Home';
 
@@ -10,6 +10,7 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(false);
   const [selectedDest, setSelectedDest] = useState(null);
+  const [favorites, setFavorites] = useState([]);
 
   // Form State
   const [loginEmail, setLoginEmail] = useState('');
@@ -18,6 +19,15 @@ export default function App() {
   const [regEmail, setRegEmail] = useState('');
   const [regPassword, setRegPassword] = useState('');
   const [regConfirmPassword, setRegConfirmPassword] = useState('');
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const savedUser = localStorage.getItem('user_data');
+    if (token) {
+      if (savedUser) setUser(JSON.parse(savedUser));
+      setCurrentPage('home');
+    }
+  }, []);
 
   // 1. HANDLER REGISTER
   const handleRegisterSubmit = async (e) => {
@@ -38,7 +48,7 @@ export default function App() {
       setAuthTab('login');
       setLoginEmail(regEmail);
     } catch (err) {
-      alert(err.response?.data?.error || 'Registrasi gagal. Cek koneksi MongoDB Atlas.');
+      alert(err.response?.data?.error || 'Registrasi gagal.');
     } finally {
       setLoading(false);
     }
@@ -54,13 +64,26 @@ export default function App() {
         password: loginPassword
       });
       localStorage.setItem('token', res.data.token);
+      localStorage.setItem('user_data', JSON.stringify(res.data.user));
       setUser(res.data.user);
+      alert('Login Berhasil!');
       setCurrentPage('home');
     } catch (err) {
       alert(err.response?.data?.error || 'Login gagal. Email atau password salah.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user_data');
+    setUser(null);
+    setCurrentPage('auth');
+  };
+
+  const toggleFavorite = (id) => {
+    setFavorites(prev => prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]);
   };
 
   return (
@@ -172,27 +195,50 @@ export default function App() {
       {/* 2. HALAMAN BERANDA / HOME */}
       {currentPage === 'home' && (
         <Home 
+          user={user}
+          onLogout={handleLogout}
           onSelectDestination={(dest) => { setSelectedDest(dest); setCurrentPage('detail'); }}
+          favorites={favorites}
+          onToggleFavorite={toggleFavorite}
         />
       )}
 
-      {/* 3. HALAMAN DETAIL */}
+      {/* 3. HALAMAN DETAIL DESTINASI */}
       {currentPage === 'detail' && selectedDest && (
-        <div style={{ backgroundColor: '#f8fafc', minHeight: '100vh', padding: '40px 20px' }}>
-          <div style={{ maxWidth: '800px', margin: '0 auto', backgroundColor: '#fff', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
-            <img src={selectedDest.image || '/images/destination-1.jpg'} alt={selectedDest.title} style={{ width: '100%', height: '350px', objectFit: 'cover' }} />
-            <div style={{ padding: '30px' }}>
-              <span style={{ backgroundColor: '#e0f2fe', color: '#0369a1', padding: '4px 12px', borderRadius: '20px', fontSize: '13px', fontWeight: 'bold' }}>
-                {selectedDest.category || 'Wisata'}
-              </span>
-              <h1 style={{ fontSize: '28px', marginTop: '15px', fontWeight: 'bold' }}>{selectedDest.title}</h1>
-              <p style={{ color: '#64748b' }}>📍 {selectedDest.location}</p>
-              <p style={{ fontSize: '18px', fontWeight: 'bold', color: '#eab308' }}>⭐ {selectedDest.rating || 5.0} / 5.0 | <span style={{ color: '#0f172a' }}>{selectedDest.price || 'Rp 50.000'}</span></p>
-              <hr style={{ border: 'none', borderTop: '1px solid #e2e8f0', margin: '20px 0' }} />
-              <p style={{ lineHeight: '1.8', color: '#334155' }}>{selectedDest.description || 'Destinasi wisata unggulan di Indonesia dengan keindahan panorama alam serta kekayaan budaya lokal yang memukau para wisatawan.'}</p>
-              <button onClick={() => setCurrentPage('home')} style={{ marginTop: '20px', padding: '10px 20px', backgroundColor: '#0f172a', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
+        <div style={{ backgroundColor: '#f8fafc', minHeight: '100vh', paddingBottom: '60px' }}>
+          <nav className="navbar navbar-dark bg-dark py-3" style={{ background: '#040e27' }}>
+            <div className="container d-flex justify-content-between align-items-center">
+              <a className="navbar-brand text-white font-weight-bold" href="#back" onClick={(e) => { e.preventDefault(); setCurrentPage('home'); }}>
                 ← Kembali ke Katalog
-              </button>
+              </a>
+              <button onClick={handleLogout} className="btn btn-outline-danger btn-sm">Logout</button>
+            </div>
+          </nav>
+          <div className="container mt-4" style={{ maxWidth: '900px' }}>
+            <div className="card shadow-sm border-0 rounded overflow-hidden bg-white" style={{ borderRadius: '12px' }}>
+              <img src={selectedDest.image} alt={selectedDest.title} style={{ width: '100%', height: '400px', objectFit: 'cover' }} />
+              <div className="card-body p-4 p-md-5">
+                <span className="badge badge-primary px-3 py-2 mb-2" style={{ backgroundColor: '#2563eb' }}>{selectedDest.category}</span>
+                <h1 className="font-weight-bold mt-2" style={{ fontSize: '32px' }}>{selectedDest.title}</h1>
+                <p className="text-muted"><i className="fa fa-map-marker text-danger mr-2"></i>{selectedDest.location}</p>
+                <p className="text-warning font-weight-bold" style={{ fontSize: '18px' }}>
+                  ⭐ {selectedDest.rating} / 5.0 | <span className="text-dark">Estimasi Tiket: {selectedDest.price}</span>
+                </p>
+                <hr style={{ margin: '24px 0' }} />
+                <h4 className="font-weight-bold mb-3">Deskripsi Lengkap</h4>
+                <p style={{ lineHeight: '1.8', color: '#4a5568', fontSize: '16px' }}>{selectedDest.description}</p>
+                <div className="mt-4 d-flex" style={{ gap: '12px' }}>
+                  <button 
+                    className={`btn ${favorites.includes(selectedDest._id || selectedDest.id) ? 'btn-danger' : 'btn-outline-primary'} px-4 py-2`}
+                    onClick={() => toggleFavorite(selectedDest._id || selectedDest.id)}
+                  >
+                    {favorites.includes(selectedDest._id || selectedDest.id) ? '❤️ Hapus dari Favorit' : '🤍 Simpan ke Favorit'}
+                  </button>
+                  <button className="btn btn-secondary px-4 py-2" onClick={() => setCurrentPage('home')}>
+                    Kembali ke Beranda
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -201,7 +247,7 @@ export default function App() {
   );
 }
 
-// Inline Styling Mandiri
+// Styling Form
 const authWrapperStyle = { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f1f5f9', padding: '20px' };
 const authCardStyle = { width: '100%', maxWidth: '440px', backgroundColor: '#ffffff', borderRadius: '16px', padding: '32px', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)' };
 const tabContainerStyle = { display: 'flex', borderBottom: '2px solid #e2e8f0', marginBottom: '24px' };
